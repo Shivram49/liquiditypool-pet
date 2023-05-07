@@ -23,7 +23,7 @@ function prettyJSONString(inputString) {
 	}
 }
 
-async function submitBid(ccp,wallet,user,auctionID,price) {
+async function submitBid(ccp,wallet,user,auctionID,price,walletId) {
 	try {
 
 		const gateway = new Gateway();
@@ -42,7 +42,7 @@ async function submitBid(ccp,wallet,user,auctionID,price) {
 		let statefulTxn = contract.createTransaction('BuyEnergy');
 
 		console.log('\n--> Submit Transaction: add bid to the auction');
-		await statefulTxn.submit(auctionID,price);
+		await statefulTxn.submit(auctionID,price,walletId);
 
 		console.log('\n--> Evaluate Transaction: query the auction to see that our bid was added');
 		let result = await contract.evaluateTransaction('QueryPool',auctionID);
@@ -68,12 +68,13 @@ async function main() {
 		const user = process.argv[3];
 		const auctionID = process.argv[4];
 		const price = process.argv[5];
+		const walletId = process.argv[6];
 
 		if (org === 'Org1' || org === 'org1') {
 			const ccp = buildCCPOrg1();
 			const walletPath = path.join(__dirname, 'wallet/org1');
 			const wallet = await buildWallet(Wallets, walletPath);
-			await submitBid(ccp,wallet,user,auctionID,price);
+			await submitBid(ccp,wallet,user,auctionID,price,walletId);
 		}
 		else {
 			console.log('Usage: node submitBid.js org userID auctionID bidID');

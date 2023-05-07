@@ -5,32 +5,14 @@ SPDX-License-Identifier: Apache-2.0
 package auction
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
 	"github.com/hyperledger/fabric-chaincode-go/shim"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
-
-// QueryAuction allows all members of the channel to read a public auction
-func (s *SmartContract) QueryAuction(ctx contractapi.TransactionContextInterface, auctionID string) (*Auction, error) {
-
-	auctionJSON, err := ctx.GetStub().GetState(auctionID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get auction object %v: %v", auctionID, err)
-	}
-	if auctionJSON == nil {
-		return nil, fmt.Errorf("auction does not exist")
-	}
-
-	var auction *Auction
-	err = json.Unmarshal(auctionJSON, &auction)
-	if err != nil {
-		return nil, err
-	}
-
-	return auction, nil
-}
 
 func (s *SmartContract) QueryPool(ctx contractapi.TransactionContextInterface, auctionID string) (*Pool, error) {
 
@@ -49,6 +31,35 @@ func (s *SmartContract) QueryPool(ctx contractapi.TransactionContextInterface, a
 	}
 
 	return pool, nil
+}
+
+func (s *SmartContract) QueryWalletById(ctx contractapi.TransactionContextInterface, walletId string) (*CommonWallet, error) {
+
+	clientId, err := s.GetSubmittingClientIdentity(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client identity %v", err)
+	}
+
+	data := walletId + clientId
+	hash := sha256.Sum256([]byte(data))
+	hashedWalletId := base64.StdEncoding.EncodeToString(hash[:])
+	walletJson, err := ctx.GetStub().GetState(hashedWalletId)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get wallet object %v: %v", walletId, err)
+	}
+
+	if walletJson == nil {
+		return nil, fmt.Errorf("wallet does not exist")
+	}
+
+	var commonWallet *CommonWallet
+	err = json.Unmarshal(walletJson, &commonWallet)
+	if err != nil {
+		return nil, err
+	}
+
+	return commonWallet, nil
 }
 
 // QueryBid allows the submitter of the bid to read their bid from public state
